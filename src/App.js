@@ -653,20 +653,16 @@ export default function DigitalMaturityAssessment() {
   const [hoveredLevel, setHoveredLevel] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
 
   const totalQuestions = DIMENSIONS.reduce((acc, d) => acc + d.subDimensions.length, 0);
 
   // Charger tous les utilisateurs
   useEffect(() => {
     if (currentView === "login" || showAdmin) {
-      setLoadingUsers(true);
       getAllUsers().then(users => {
         setAllUsers(users);
-        setLoadingUsers(false);
       }).catch(err => {
         console.error('Error loading users:', err);
-        setLoadingUsers(false);
       });
     }
   }, [currentView, showAdmin]);
