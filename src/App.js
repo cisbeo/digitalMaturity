@@ -653,8 +653,30 @@ export default function DigitalMaturityAssessment() {
   const [hoveredLevel, setHoveredLevel] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
+  const [viewingUserTrigram, setViewingUserTrigram] = useState(null);
 
   const totalQuestions = DIMENSIONS.reduce((acc, d) => acc + d.subDimensions.length, 0);
+
+  // Fonction pour voir les résultats d'un autre utilisateur
+  const viewUserResults = (user) => {
+    setViewingUserTrigram(user.trigram);
+    setAnswers(user.answers);
+    setCurrentView("results");
+    setAnimateResults(false);
+    setTimeout(() => setAnimateResults(true), 100);
+  };
+
+  // Fonction pour retourner à ses propres résultats
+  const backToMyResults = () => {
+    const userData = allUsers.find(u => u.trigram === currentTrigram);
+    if (userData) {
+      setViewingUserTrigram(null);
+      setAnswers(userData.answers);
+      setCurrentView("results");
+      setAnimateResults(false);
+      setTimeout(() => setAnimateResults(true), 100);
+    }
+  };
 
   // Charger tous les utilisateurs
   useEffect(() => {
@@ -930,7 +952,11 @@ export default function DigitalMaturityAssessment() {
                         transition: "all 0.2s ease"
                       }}
                       onClick={() => {
-                        setTrigramInput(user.trigram);
+                        if (user.completed) {
+                          viewUserResults(user);
+                        } else {
+                          setTrigramInput(user.trigram);
+                        }
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1027,8 +1053,11 @@ export default function DigitalMaturityAssessment() {
                         borderRadius: 10,
                         background: "#fff",
                         border: "1px solid #e2e5ea",
-                        marginBottom: 8
+                        marginBottom: 8,
+                        cursor: user.completed ? "pointer" : "default",
+                        transition: "all 0.2s ease"
                       }}
+                      onClick={() => user.completed && viewUserResults(user)}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
                         <div style={{
@@ -1068,7 +1097,8 @@ export default function DigitalMaturityAssessment() {
                           </div>
                         )}
                         <button
-                          onClick={async () => {
+                          onClick={async (e) => {
+                            e.stopPropagation();
                             if (window.confirm(`Supprimer l'évaluation de ${user.trigram} ?`)) {
                               await deleteUserData(user.trigram);
                               setShowAdmin(false);
@@ -1329,17 +1359,46 @@ export default function DigitalMaturityAssessment() {
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
 
         <div style={{ position: "absolute", top: 16, right: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          {viewingUserTrigram && viewingUserTrigram !== currentTrigram && (
+            <>
+              <div style={{
+                padding: "6px 12px",
+                background: "#2D9CDB10",
+                border: "1px solid #2D9CDB30",
+                borderRadius: 8,
+                fontSize: 11,
+                fontWeight: 600,
+                fontFamily: "'DM Mono', monospace",
+                color: "#2D9CDB"
+              }}>
+                👁️ Consultation
+              </div>
+              <button onClick={backToMyResults} style={{
+                background: "#27AE60",
+                border: "none",
+                color: "#fff",
+                borderRadius: 8,
+                padding: "6px 12px",
+                fontSize: 11,
+                cursor: "pointer",
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 600
+              }}>
+                Mes résultats
+              </button>
+            </>
+          )}
           <div style={{
             padding: "8px 16px",
-            background: "#E85D3A10",
-            border: "1px solid #E85D3A30",
+            background: viewingUserTrigram && viewingUserTrigram !== currentTrigram ? "#2D9CDB10" : "#E85D3A10",
+            border: `1px solid ${viewingUserTrigram && viewingUserTrigram !== currentTrigram ? "#2D9CDB" : "#E85D3A"}30`,
             borderRadius: 8,
             fontSize: 13,
             fontWeight: 700,
             fontFamily: "'DM Mono', monospace",
-            color: "#E85D3A"
+            color: viewingUserTrigram && viewingUserTrigram !== currentTrigram ? "#2D9CDB" : "#E85D3A"
           }}>
-            {currentTrigram}
+            {viewingUserTrigram || currentTrigram}
           </div>
           <button onClick={handleLogout} style={{
             background: "transparent",
