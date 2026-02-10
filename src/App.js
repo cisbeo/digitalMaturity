@@ -666,18 +666,6 @@ export default function DigitalMaturityAssessment() {
     setTimeout(() => setAnimateResults(true), 100);
   };
 
-  // Fonction pour retourner à ses propres résultats
-  const backToMyResults = () => {
-    const userData = allUsers.find(u => u.trigram === currentTrigram);
-    if (userData) {
-      setViewingUserTrigram(null);
-      setAnswers(userData.answers);
-      setCurrentView("results");
-      setAnimateResults(false);
-      setTimeout(() => setAnimateResults(true), 100);
-    }
-  };
-
   // Charger tous les utilisateurs
   useEffect(() => {
     if (currentView === "login" || showAdmin) {
@@ -1359,44 +1347,15 @@ export default function DigitalMaturityAssessment() {
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
 
         <div style={{ position: "absolute", top: 16, right: 16, display: "flex", alignItems: "center", gap: 12 }}>
-          {viewingUserTrigram && viewingUserTrigram !== currentTrigram && (
-            <>
-              <div style={{
-                padding: "6px 12px",
-                background: "#2D9CDB10",
-                border: "1px solid #2D9CDB30",
-                borderRadius: 8,
-                fontSize: 11,
-                fontWeight: 600,
-                fontFamily: "'DM Mono', monospace",
-                color: "#2D9CDB"
-              }}>
-                👁️ Consultation
-              </div>
-              <button onClick={backToMyResults} style={{
-                background: "#27AE60",
-                border: "none",
-                color: "#fff",
-                borderRadius: 8,
-                padding: "6px 12px",
-                fontSize: 11,
-                cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-                fontWeight: 600
-              }}>
-                Mes résultats
-              </button>
-            </>
-          )}
           <div style={{
             padding: "8px 16px",
-            background: viewingUserTrigram && viewingUserTrigram !== currentTrigram ? "#2D9CDB10" : "#E85D3A10",
-            border: `1px solid ${viewingUserTrigram && viewingUserTrigram !== currentTrigram ? "#2D9CDB" : "#E85D3A"}30`,
+            background: "#E85D3A10",
+            border: "1px solid #E85D3A30",
             borderRadius: 8,
             fontSize: 13,
             fontWeight: 700,
             fontFamily: "'DM Mono', monospace",
-            color: viewingUserTrigram && viewingUserTrigram !== currentTrigram ? "#2D9CDB" : "#E85D3A"
+            color: "#E85D3A"
           }}>
             {viewingUserTrigram || currentTrigram}
           </div>
