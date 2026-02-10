@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { saveUserData, loadUserData, getAllUsers, deleteUserData } from './dataService';
+import { isSupabaseConfigured } from './supabaseClient';
 
 const DIMENSIONS = [
   {
@@ -497,35 +499,6 @@ const MATURITY_LEVELS = [
   { level: 5, label: "Optimisé", color: "#2D9CDB", description: "Leader digital" }
 ];
 
-// ========== GESTION DU STORAGE ==========
-const STORAGE_KEY_PREFIX = "digitalMaturity_";
-
-function saveUserData(trigram, data) {
-  localStorage.setItem(`${STORAGE_KEY_PREFIX}${trigram.toUpperCase()}`, JSON.stringify(data));
-}
-
-function loadUserData(trigram) {
-  const data = localStorage.getItem(`${STORAGE_KEY_PREFIX}${trigram.toUpperCase()}`);
-  return data ? JSON.parse(data) : null;
-}
-
-function getAllUsers() {
-  const users = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key.startsWith(STORAGE_KEY_PREFIX)) {
-      const trigram = key.replace(STORAGE_KEY_PREFIX, "");
-      const data = JSON.parse(localStorage.getItem(key));
-      users.push({ trigram, ...data });
-    }
-  }
-  return users.sort((a, b) => new Date(b.lastUpdate || 0) - new Date(a.lastUpdate || 0));
-}
-
-function deleteUserData(trigram) {
-  localStorage.removeItem(`${STORAGE_KEY_PREFIX}${trigram.toUpperCase()}`);
-}
-
 // ========== COMPOSANTS VISUELS ==========
 function RadarChart({ scores, dimensions }) {
   const svgWidth = 520;
@@ -679,8 +652,24 @@ export default function DigitalMaturityAssessment() {
   const [animateResults, setAnimateResults] = useState(false);
   const [hoveredLevel, setHoveredLevel] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   const totalQuestions = DIMENSIONS.reduce((acc, d) => acc + d.subDimensions.length, 0);
+
+  // Charger tous les utilisateurs
+  useEffect(() => {
+    if (currentView === "login" || showAdmin) {
+      setLoadingUsers(true);
+      getAllUsers().then(users => {
+        setAllUsers(users);
+        setLoadingUsers(false);
+      }).catch(err => {
+        console.error('Error loading users:', err);
+        setLoadingUsers(false);
+      });
+    }
+  }, [currentView, showAdmin]);
 
   // Auto-save à chaque changement de réponse
   useEffect(() => {
@@ -695,7 +684,7 @@ export default function DigitalMaturityAssessment() {
     }
   }, [answers, currentDim, currentSub, currentTrigram, currentView]);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const trimmed = trigramInput.trim().toUpperCase();
     if (trimmed.length !== 3) {
       alert("Le trigramme doit contenir exactement 3 caractères");
@@ -703,7 +692,7 @@ export default function DigitalMaturityAssessment() {
     }
 
     setCurrentTrigram(trimmed);
-    const userData = loadUserData(trimmed);
+    const userData = await loadUserData(trimmed);
 
     if (userData && userData.answers && Object.keys(userData.answers).length > 0) {
       // Utilisateur existant avec données
@@ -829,11 +818,31 @@ export default function DigitalMaturityAssessment() {
 
   // ========== VUE LOGIN ==========
   if (currentView === "login") {
-    const allUsers = getAllUsers();
 
     return (
       <div style={containerStyle}>
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
+
+        {/* Badge Supabase */}
+        <div style={{ position: "absolute", top: 16, right: 16 }}>
+          <div style={{
+            padding: "6px 12px",
+            background: isSupabaseConfigured() ? "#27AE6010" : "#F2994A10",
+            border: `1px solid ${isSupabaseConfigured() ? "#27AE60" : "#F2994A"}30`,
+            borderRadius: 8,
+            fontSize: 11,
+            fontWeight: 600,
+            fontFamily: "'DM Mono', monospace",
+            color: isSupabaseConfigured() ? "#27AE60" : "#F2994A",
+            display: "flex",
+            alignItems: "center",
+            gap: 6
+          }}>
+            <span>{isSupabaseConfigured() ? "●" : "○"}</span>
+            {isSupabaseConfigured() ? "Supabase actif" : "Mode local"}
+          </div>
+        </div>
+
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "80px 24px", textAlign: "center" }}>
           <div style={{ fontSize: 11, letterSpacing: 4, textTransform: "uppercase", color: "#E85D3A", fontFamily: "'DM Mono', monospace", marginBottom: 16 }}>
             Diagnostic de maturité digitale
@@ -1063,9 +1072,9 @@ export default function DigitalMaturityAssessment() {
                           </div>
                         )}
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             if (window.confirm(`Supprimer l'évaluation de ${user.trigram} ?`)) {
-                              deleteUserData(user.trigram);
+                              await deleteUserData(user.trigram);
                               setShowAdmin(false);
                               setTimeout(() => setShowAdmin(true), 10);
                             }
